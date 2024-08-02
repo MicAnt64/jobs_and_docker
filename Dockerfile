@@ -1,4 +1,4 @@
-FROM node:16
+FROM node:20
 
 # Ignore this, we are not running container, we are just building images in github actions
 ENV MONGODB_CONNECTION_PROTOCOL mongodb+srv
