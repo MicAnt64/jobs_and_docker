@@ -10,7 +10,14 @@ env:
 jobs:
   test:
     environment: testing
+    # In this case, ubuntu machine will just host the image.
     runs-on: ubuntu-latest
+    # To put jobs and steps in a container, use container keyword, then specify name of image
+    container:
+      image: node:16
+      # Env vars needed by image, not steps later on. Node needs none
+      # env:
+      # SOME_VAR: some_value
     env:
       MONGODB_CONNECTION_PROTOCOL: mongodb+srv
       MONGODB_CLUSTER_ADDRESS: ${{ secrets.MONGODB_CLUSTER }}
