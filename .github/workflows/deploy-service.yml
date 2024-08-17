@@ -1,0 +1,78 @@
+name: Deployment-Service (Container)
+on:
+  push:
+    branches:
+      - main
+      - dev
+env:
+  CACHE_KEY: node-deps
+  MONGODB_DB_NAME: gha-demo
+jobs:
+  test:
+    environment: testing
+    # In this case, ubuntu machine will just host the image.
+    runs-on: ubuntu-latest
+    # To put jobs and steps in a container, use container keyword, then specify name of image
+    container:
+      image: node:16
+      # Env vars needed by image, not steps later on. Node needs none
+      # env:
+      # SOME_VAR: some_value
+    env:
+      # MONGODB_CONNECTION_PROTOCOL: mongodb+srv
+      MONGODB_CONNECTION_PROTOCOL: mongodb
+      MONGODB_CLUSTER_ADDRESS: mongodb
+      # MONGODB_USERNAME: ${{ secrets.MONGODB_USERNAME }}
+      # MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
+      # These now should be the same as in lines 48-49
+      MONGODB_USERNAME: dummyusername
+      MONGODB_PASSWORD: dummypassword
+      PORT: 8080
+    services:
+      # identifier-label for svc (can be anything)
+      # can add many services
+      # Here we will spin up a new DB
+      # these services will run side-by-side as other steps are executed.
+      # When it comes to communicating between with service container inside job, there are
+      # things to watch out for, whether the job runs in a container or not. If you job does
+      # run in a container, as it does here, then connecting to container svcs is super
+      # simple since GHA will auto create a network env, where you can use label of container
+      # (here mongodb) as a connection address. So MONGODB_CLUSTER_ADDRESS can be set to mongodb.
+      # I'll also need to change MONGODB_CONNECTION_PROTOCOL to equal mongodb.
+      # So now I do not need a mongo db cluster, but I have my own for internal testing.
+      mongodb:
+        # keys in this section is defined by github actions
+        # Services always depend on images
+        image: mongo
+        # env is image dependent
+        env:
+          MONGO_INITDB_ROOT_USERNAME: dummyusername
+          MONGO_INITDB_ROOT_PASSWORD: dummypassword
+    steps:
+      - name: Get Code
+        uses: actions/checkout@v3
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ env.CACHE_KEY }}-${{ hashFiles('**/package-lock.json') }}
+      - name: Install dependencies
+        run: npm ci
+      - name: Run server
+        run: npm start & npx wait-on http://127.0.0.1:$PORT # requires MongoDB Atlas to accept requests from anywhere!
+      - name: Run tests
+        run: npm test
+      - name: Output information
+        run: |
+          echo "MONGODB_USERNAME: $MONGODB_USERNAME"
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Output information
+        env:
+          PORT: 3000
+        run: |
+          echo "MONGODB_DB_NAME: $MONGODB_DB_NAME"
+          echo "MONGODB_USERNAME: $MONGODB_USERNAME"
+          echo "${{ env.PORT }}"
