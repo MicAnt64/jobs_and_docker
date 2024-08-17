@@ -13,14 +13,19 @@ jobs:
     # In this case, ubuntu machine will just host the image.
     runs-on: ubuntu-latest
     # To put jobs and steps in a container, use container keyword, then specify name of image
-    container:
-      image: node:16
-      # Env vars needed by image, not steps later on. Node needs none
-      # env:
-      # SOME_VAR: some_value
+    # If I comment out the next 2 lines, job wont run in a container, but on runner itself.
+    # I can still use service containers, but now, there is no automated network. So for MONGO_DB_CLUSTER_ADDRESS
+    # I have to set it to localhost 127.0.0.1:27017 (default port), and I also have to open the port
+    # Directly in service container
+    #
+    # container:
+    #   image: node:16
+    #   Env vars needed by image, not steps later on. Node needs none
+    #   env:
+    # SOME_VAR: some_value
     env:
       # MONGODB_CONNECTION_PROTOCOL: mongodb+srv
-      MONGODB_CONNECTION_PROTOCOL: mongodb
+      MONGODB_CONNECTION_PROTOCOL: 127.0.0.1:27017 #mongodb
       MONGODB_CLUSTER_ADDRESS: mongodb
       # MONGODB_USERNAME: ${{ secrets.MONGODB_USERNAME }}
       # MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
@@ -44,6 +49,8 @@ jobs:
         # keys in this section is defined by github actions
         # Services always depend on images
         image: mongo
+        ports:
+          - 27017:27017
         # env is image dependent
         env:
           MONGO_INITDB_ROOT_USERNAME: dummyusername
